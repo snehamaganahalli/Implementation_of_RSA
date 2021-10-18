@@ -2,6 +2,9 @@
 #include<gmp.h>
 #include <assert.h>
 #include <time.h>
+#include <stdlib.h>
+
+#define BUFFER_SIZE 40
 
 mpz_t x, p, q, n, e, d, dp, dq, y, p_minus_1, q_minus_1;
 clock_t start_t, end_t;
@@ -43,31 +46,21 @@ void rsa_decrypt_using_crt()
   mpz_t xp, xq, inv_p, inv_q, crt_decrypt_val, tmp, tmp1;
 
   mpz_init(xp);
-  mpz_set_ui(xp, 0);
-
   mpz_init(xq);
-  mpz_set_ui(xq, 0);
-
   mpz_init(inv_p);
-  mpz_set_ui(inv_p, 0);
-
   mpz_init(inv_q);
-  mpz_set_ui(inv_q, 0);
-
   mpz_init(tmp);
-  mpz_set_ui(tmp, 0);
-
   mpz_init(tmp1);
-  mpz_set_ui(tmp1, 0);
-
   mpz_init(crt_decrypt_val);
-  mpz_set_ui(crt_decrypt_val, 0);
 
   /* Calculate xp = y^dp mod p */
+  start_t = clock();
   mpz_powm(xp, y, dp, p);
 
   /* Calculate xq = y^dq mod q */
   mpz_powm(xq, y, dq, q);
+  end_t = clock();
+  total_with_crt += (double)(end_t - start_t) / CLOCKS_PER_SEC;
 
   mpz_invert(inv_p, q, p);
   mpz_invert(inv_q, p, q);
@@ -84,7 +77,7 @@ void rsa_decrypt_using_crt()
   mpz_add(crt_decrypt_val, tmp, tmp1);
   mpz_mod(crt_decrypt_val, crt_decrypt_val, n);
   end_t = clock();
-  total_with_crt = (double)(end_t - start_t) / CLOCKS_PER_SEC;
+  total_with_crt += (double)(end_t - start_t) / CLOCKS_PER_SEC;
 
   printf ("\nDecryption WITH chinese remainder theorem (CRT) is ");
   mpz_out_str(stdout, 10, crt_decrypt_val);
@@ -121,30 +114,81 @@ void init_all()
   mpz_init(q_minus_1);
 }
 
+void generate_keys()
+{
+
+  char buf[BUFFER_SIZE];
+  int i;
+  mpz_t phi; mpz_init(phi);
+  mpz_t tmp1; mpz_init(tmp1);
+  mpz_t tmp2; mpz_init(tmp2);
+
+  mpz_set_ui(e, 3);
+
+  for(i = 0; i < BUFFER_SIZE; i++) {
+    buf[i] = rand() % 0xFF;
+ }
+
+ /* Set the top two bits to 1 to ensure int(tmp) is relatively large. c0 is 1100 0000 in binary. */
+ buf[0] |= 0xC0;
+ buf[BUFFER_SIZE - 1] |= 0x01;
+
+ /* Interpret this char buffer as an int */
+ mpz_import(tmp1, BUFFER_SIZE, 1, sizeof(buf[0]), 0, 0, buf);
+ mpz_nextprime(p, tmp1);
+
+ /* Make sure this is a good choice*/
+ mpz_mod(tmp2, p, e);        /* If p mod e == 1, gcd(phi, e) != 1 */
+ while(!mpz_cmp_ui(tmp2, 1))
+ {
+        mpz_nextprime(p, p);    /* so choose the next prime */
+        mpz_mod(tmp2, p, e);
+ }
+
+ /* Now select q */
+ do{
+      for(i = 0; i < BUFFER_SIZE; i++)
+            buf[i] = rand() % 0xFF;
+      buf[0] |= 0xC0;
+      buf[BUFFER_SIZE - 1] |= 0x01;
+      mpz_import(tmp1, (BUFFER_SIZE), 1, sizeof(buf[0]), 0, 0, buf);
+      mpz_nextprime(q, tmp1);
+      mpz_mod(tmp2, q, e);
+        while(!mpz_cmp_ui(tmp2, 1))
+        {
+            mpz_nextprime(q, q);
+            mpz_mod(tmp2, q, e);
+        }
+  }while(mpz_cmp(p, q) == 0); /* If we have identical primes (unlikely), try again */
+
+  /* Calculate n = p x q */
+  mpz_mul(n, p, q);
+
+  /* Compute phi(n) = (p-1)(q-1) */
+  mpz_sub_ui(tmp1, p, 1);
+  mpz_sub_ui(tmp2, q, 1);
+  mpz_mul(phi, tmp1, tmp2);
+
+  /* Calculate d (multiplicative inverse of e mod phi) */
+  if(mpz_invert(d, e, phi) == 0)
+  {
+    mpz_gcd(tmp1, e, phi);
+    printf("gcd(e, phi) = [%s]\n", mpz_get_str(NULL, 10, tmp1));
+    printf("Invert failed\n");
+  }
+}
+
 int main()
 {
 
   char inputStr[1024];
-
   int flag;
 
   init_all();
-
   mpz_set_ui(x, 0);
+  mpz_t n_minus_1; mpz_init(n_minus_1);
 
-  /*Choose p, q such that they are relatively prime to each other*/
-  mpz_set_ui(p, 15635861);
-
-  mpz_set_ui(q, 14899679);
-
-  /* n = p*q */
-  mpz_set_ui(n, 232969309788619);
-
-  /* Select a public key */
-  mpz_set_ui(e, 3);
-
-  /* Select a private key. It is inverse of e mod phi. phi = (p-1) * (q-1)  */
-  mpz_set_ui(d, 155312852835387);
+  generate_keys();
 
   /* Calculate dp; dp = d mod (p-1) */
   mpz_sub_ui(p_minus_1, p, 1);
@@ -154,8 +198,9 @@ int main()
   mpz_sub_ui(q_minus_1, q, 1);
   mpz_mod(dq, d, q_minus_1);
 
+  mpz_sub_ui(n_minus_1, n, 1);
   printf ("\nEnter the number to encrypt. The number should be less than n: ");
-  mpz_out_str(stdout, 10, n);
+  mpz_out_str(stdout, 10, n_minus_1);
   printf ("\n");
   scanf("%1023s" , inputStr);
 
@@ -164,8 +209,8 @@ int main()
   assert ("Invalid input string. please enter a valid input string" && flag == 0);
 
   /* If the number is greater than n (the message space) prit error. */
-  flag = mpz_cmpabs (n, x);
-  assert ("Invalid input string. please enter a valid input string lesser than n" && (flag >= 0));
+  flag = mpz_cmpabs (n_minus_1, x);
+  assert ("Invalid input string. please enter a valid input string lesser than n" && (flag > 0));
 
   /* Print n */
   printf ("\nPlain text is ");
