@@ -3,12 +3,15 @@ Implement RSA with and without using Chinese remainder Theorem (CRT). And calcul
 
 
 1) Run below command to sync the code to local
-git clone
+
+git clone https://github.com/snehamaganahalli/Implementation_of_RSA.git
 
 2) Install the GMP Library. The below command needs super user permission. Without this installation the program will not get compiled.
+
 sudo apt-get install libgmp3-dev![image](https://user-images.githubusercontent.com/38486907/137661155-95d1b815-dec3-45f1-933c-9f603c167c0f.png)
 
 3) compile
+
 gcc rsa_crt.c -lgmp
 
 4) Execute
