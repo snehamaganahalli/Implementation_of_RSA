@@ -18,7 +18,7 @@ gcc rsa_crt.c -lgmp
 
 ./a.out
 
-==================================================================================================================================
+=======================================================================
 
 The program asks to enter the plain text. The maximun value for the plain text is [0, (n-1)]. (0 to n-1 including 0 and n-1).
 The larger the value of the plain text (i.e when the plain text value is near to the value of n), we can see the efficiency of the Chinese remainder theorem (CRT).
