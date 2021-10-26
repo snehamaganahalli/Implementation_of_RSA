@@ -37,3 +37,11 @@ Implement RSA with and without using Chinese remainder Theorem (CRT). And calcul
 The program asks to enter the plain text. The maximun value for the plain text is [0, (n-1)]. (0 to n-1 including 0 and n-1).
 
 **We will see that decryption using Chinese remainder theorem is two to three times more efficient than the normal decryption.**
+
+=======================
+
+**Name: Sneha M R**
+
+**Roll Number: CS21M522**
+
+**Registered Mail ID: sneha.maganahalli@gmail.com**
