@@ -43,5 +43,3 @@ The program asks to enter the plain text. The maximun value for the plain text i
 **Name: Sneha M R**
 
 **Roll Number: CS21M522**
-
-**Registered Mail ID: sneha.maganahalli@gmail.com**
